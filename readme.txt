@@ -32,6 +32,3 @@ Does the same functionality as BuddyPress, emailing users who get mentioned in a
 
 = 0.1 =
 * Initial release.
-
-// if bp there, give notice
-// if bbp not there, give notice
