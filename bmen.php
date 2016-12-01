@@ -4,7 +4,7 @@ Plugin Name: bbPress Mentions Email Notifications
 Plugin URI: https://samelh.com/
 Description: Mentions Email Notifications for bbPress
 Author: Samuel Elh
-Version: 1.0
+Version: 1.0.1
 Author URI: https://samelh.com
 */
 
@@ -21,7 +21,7 @@ class Bmen
     protected static $instance = null;
 
     /** plugin version **/
-    public $version = '1.0';
+    public $version = '1.0.1';
 
     /** patterns to replace in mail **/
     public $patterns = null;
@@ -224,7 +224,7 @@ class Bmen
 
 			    		<p><em>You can format the subject and email body with the following patterns:</em></p>
 
-			    		<?php foreach ( $this->patterns as $p => $d ) : ?>
+			    		<?php foreach ( self::instance()->patterns as $p => $d ) : ?>
 			    			<code><?php echo $p; ?></code>: <?php echo $d; ?><br/>
 			    		<?php endforeach; ?>
 
@@ -261,7 +261,7 @@ class Bmen
         <div class="wrap">
             <h2>bbPress Mentions Email Notifications &rsaquo; About</h2>
             <?php self::topMenu(); ?>
-            <p style="font-weight:600">Thank you for using <a href="https://wordpress.org/plugins/bbp-mentions-email-notifications/">bbPress Mentions Email Notifications</a>, ver. <?php echo $this->version; ?>!</p>
+            <p style="font-weight:600">Thank you for using <a href="https://wordpress.org/plugins/bbp-mentions-email-notifications/">bbPress Mentions Email Notifications</a>, ver. <?php echo self::instance()->version; ?>!</p>
             <li><a href="https://wordpress.org/support/plugin/bbp-mentions-email-notifications">Support</li>
             <li><a href="https://wordpress.org/support/plugin/bbp-mentions-email-notifications/reviews/">Rate this plugin</a></li>
             <p style="font-weight:600">More bbPress plugins by Samuel Elh:</p>

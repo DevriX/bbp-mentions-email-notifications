@@ -3,7 +3,7 @@ Contributors: elhardoum
 Tags: bbpress, username, users, email, editor, settings, buddypress, members, shortcodes, tinymce, visual editor, email headers, email address
 Requires at least: 3.0.1
 Tested up to: 4.6.1
-Stable tag: 1.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Author URI: https://samelh.com/
@@ -24,8 +24,14 @@ Does the same functionality as BuddyPress, emailing users who get mentioned in a
 
 == Changelog ==
 
+= 1.0.1 =
+* Fixed a class fatal error.
+
 = 1.0 =
 * Rewrote plugin for better performance, and increased minimum PHP version support.
 
 = 0.1 =
 * Initial release.
+
+// if bp there, give notice
+// if bbp not there, give notice
