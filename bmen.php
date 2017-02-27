@@ -4,7 +4,7 @@ Plugin Name: bbPress Mentions Email Notifications
 Plugin URI: https://samelh.com/
 Description: Mentions Email Notifications for bbPress
 Author: Samuel Elh
-Version: 1.0.1
+Version: 1.0.3
 Author URI: https://samelh.com
 */
 
@@ -15,216 +15,213 @@ defined('ABSPATH') || exit('Direct access not allowed.' . PHP_EOL);
   * bbPrss mentions plugin class
   */
 
-class Bmen
+class bbpMentionsEmailNotification
 {
-	/** Class instance **/
-    protected static $instance = null;
-
     /** plugin version **/
-    public $version = '1.0.1';
+    public $version;
 
     /** patterns to replace in mail **/
-    public $patterns = null;
+    public $patterns;
 
     /** default settings **/
-    public $defaults = null;
+    public $defaults;
+
+    // text domain
+    public $text_domain;
+
+    // admin feedback
+    public $feedback;
 
     public function __construct()
     {
     	$this->patterns = array(
-    		'[user-name]' => 'mentioned user name',
-    		'[user-link]' => 'mentioned user profile link',
-    		'[user-edit-profile-link]' => 'mentioned user profile edit link',
-    		'[author-name]' => 'name of the user who mentions the target user (i.e topic/reply editor)',
-    		'[post-title]' => 'topic/reply title',
-    		'[post-link]' => 'topic or reply link',
-    		'[post-content]' => 'topic or reply content text',
-    		'[post-date]' => 'topic/reply publish date',
-    		'[post-type]' => 'type: topic or reply',
-    		'[post-ID]' => 'post ID',
-    		'[site-name]' => 'site name',
-    		'[site-login-link]' => 'login URL'
+    		'[user-name]' => __('mentioned user name', $this->text_domain),
+    		'[user-link]' => __('mentioned user profile link', $this->text_domain),
+    		'[user-edit-profile-link]' => __('mentioned user profile edit link', $this->text_domain),
+    		'[author-name]' => __('name of the user who mentions the target user (i.e topic/reply editor)', $this->text_domain),
+    		'[post-title]' => __('topic/reply title', $this->text_domain),
+    		'[post-link]' => __('topic or reply link', $this->text_domain),
+    		'[post-content]' => __('topic or reply content text', $this->text_domain),
+    		'[post-date]' => __('topic/reply publish date', $this->text_domain),
+    		'[post-type]' => __('type: topic or reply', $this->text_domain),
+    		'[post-ID]' => __('post ID', $this->text_domain),
+    		'[site-name]' => __('site name', $this->text_domain),
+    		'[site-login-link]' => __('login URL', $this->text_domain)
     	);
-    	$this->defaults = array(
-    		'email_subject' => '[user-name] has mentioned you on their [post-type] "[post-title]"',
-    		'email_body' => "Dear [user-name],\n\n[author-name] has just mentioned you on their [post-type] \"[post-title]\":\n\n\"[post-content]\"\n\nRead this post on the forums: [post-link]\nTo update your preferences, please visit your profile edit page.",
-    		'label' => 'Notify me whenever my name is mentioned on the forums'
-    	);
-    }
 
-    /** Get Class instance **/
-    public static function instance()
-    {
-        return null == self::$instance ? new self : self::$instance;
+    	$this->defaults = array(
+    		'email_subject' => __('[user-name] has mentioned you on their [post-type] "[post-title]"', $this->text_domain),
+    		'email_body' => __("Dear [user-name],\n\n[author-name] has just mentioned you on their [post-type] \"[post-title]\":\n\n\"[post-content]\"\n\nRead this post on the forums: [post-link]\nTo update your preferences, please visit your profile edit page.", $this->text_domain),
+    		'label' => __('Notify me whenever my name is mentioned on the forums', $this->text_domain)
+    	);
+
+        $this->text_domain = 'bbp-mentions-email-notifications';
+        
+        $this->version = '1.0.3';
     }
 
     /** setup **/
-    public static function init()
+    public function init()
     {
+        // load i18n
+        load_plugin_textdomain($this->text_domain, false, dirname(plugin_basename(__FILE__)).'/languages');
     	// add profile edit field
-    	add_action( "bbp_user_edit_after_contact", array( self::instance(), "peditField" ) );
+    	add_action('bbp_user_edit_after_contact', array($this, 'peditField'));
     	// hook into profile edit update
-    	add_action( "personal_options_update", array( self::instance(), "updateProfile" ) );
+    	add_action('personal_options_update', array($this, 'updateProfile'));
     	// hook into profile edit update: when updating other users' profiles
-    	add_action( "edit_user_profile_update", array( self::instance(), "updateProfile" ) );
+    	add_action('edit_user_profile_update', array($this, 'updateProfile'));
     	// notify mentioned users
-    	add_action( "bbp_edit_topic_post_extras", array( self::instance(), "mentionsCheck" ) );
-    	add_action( "bbp_edit_reply_post_extras", array( self::instance(), "mentionsCheck" ) );
-    	add_action( "bbp_new_topic_post_extras", array( self::instance(), "mentionsCheck" ) );
-    	add_action( "bbp_new_reply_post_extras", array( self::instance(), "mentionsCheck" ) );
+    	add_action('bbp_edit_topic_post_extras', array($this, 'mentionsCheck'));
+    	add_action('bbp_edit_reply_post_extras', array($this, 'mentionsCheck'));
+    	add_action('bbp_new_topic_post_extras', array($this, 'mentionsCheck'));
+    	add_action('bbp_new_reply_post_extras', array($this, 'mentionsCheck'));
+        // admin
+        if ( is_admin() ) {
+            // init
+            $this->adminInit();
+        }
     }
 
     /** settings **/
-    public static function settings($skip_globals=null)
+    public function settings()
     {
     	global $bmen_settings;
-    	if ( isset( $bmen_settings ) && !$skip_globals ) {
+
+    	if ( isset($bmen_settings) ) {
     		return $bmen_settings;
     	}
-    	$custom = array();
-    	// get custom settings
-    	$meta = get_option( "bmen_settings" );
+
+        $bmen_settings = wp_parse_args((array) get_option('bmen_settings', null), $this->defaults);
+        $bmen_settings = apply_filters('bmen_settings', $bmen_settings);
     	
-    	if ( $meta && is_array( $meta ) ) {
-    		// bbp edit profile label
-    		if ( !empty( $meta['label'] ) ) {
-    			$custom['label'] = esc_attr( $meta['label'] );
-    		}
-    		// email subject
-    		if ( !empty( $meta['email_subject'] ) ) {
-    			$custom['email_subject'] = esc_attr( $meta['email_subject'] );
-    		}
-    		// email body
-    		if ( !empty( $meta['email_body'] ) ) {
-    			$custom['email_body'] = esc_attr( $meta['email_body'] );
-    		}
-    	}
-    	// pluggable
-    	$bmen_settings = apply_filters(
-    		'bmen_settings',
-    		wp_parse_args( $custom, self::instance()->defaults ),
-    		$custom
-    	);
     	return $bmen_settings;
     }
 
     /** setup admin **/
-    public static function adminInit()
+    public function adminInit()
     {
     	// setup admin menu
-    	add_action( "admin_menu", array( self::instance(), "adminMenu" ) );
+    	add_action('admin_menu', array($this, 'adminMenu'));
     	// target settings page
-    	if ( isset( $_GET['page'] ) && 'bmen' === $_GET['page'] ) {
+    	if ( isset($_GET['page']) && 'bmen' === $_GET['page'] ) {
     		// add CSS
-    		add_action( "admin_head", array( self::instance(), "printCSS" ) );
+    		add_action('admin_head', array($this, 'printCSS'));
 	    	// manage head
-    		add_action( "admin_init", array( self::instance(), "settingsHead" ) );
+    		add_action('admin_init', array($this, 'updateSettings'));
     	}
         // add plugins.php meta links
-        add_filter( "plugin_action_links_" . plugin_basename(__FILE__), array( self::instance(), "pushMeta" ) );
+        add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($this, 'pushMeta'));
     }
 
     /** admin menu and settings page **/
-    public static function adminMenu()
+    public function adminMenu()
     {
     	// settings page
-        add_options_page( 'bbPress Mentions Email Notifications', 'bbP mentions', 'manage_options', 'bmen', array( self::instance(), 'adminScreen' ) );
+        add_options_page(
+            __('bbPress Mentions Email Notifications', $this->text_domain),
+            __('bbP mentions', $this->text_domain),
+            'manage_options',
+            'bmen',
+            array($this, 'adminScreen')
+        );
         // about page
         add_submenu_page(
             null,
-            'About &lsaquo; bbPress Mentions Email Notifications',
+            __('About &lsaquo; bbPress Mentions Email Notifications', $this->text_domain),
             null,
             'manage_options',
             'bmen-about',
-            array(self::instance(), "aboutScreen")
+            array($this, 'aboutScreen')
         );
     }
 
-    public static function settingsHead()
+    public function updateSettings()
     {
-    	if ( isset( $_POST['submit'] ) ) {
-    		if ( !isset( $_POST['bmen_nonce'] ) || !wp_verify_nonce( $_POST['bmen_nonce'], 'bmen_nonce' ) ) {
-    			printf(
-    				'<div class="%s notice is-dismissible"><p>%s</p></div>',
-    				'error',
-    				'ERROR: authentication failed.'
-    			);
-    			return;
-    		}
-    		if ( empty( $_POST['b'] ) ) return;
-	    	$meta = get_option( "bmen_settings" );
-	    	if ( !$meta || !is_array( $meta ) ) {
-	    		$meta = array();
-	    	}
-    		$post = $_POST['b'];
-    		if ( !empty( $post['m']['s'] ) && trim($post['m']['s']) ) {
-    			$meta['email_subject'] = esc_attr( sanitize_text_field( $post['m']['s'] ) );
-    		} else {
-    			unset( $meta['email_subject'] );
-    		}
-    		if ( !empty( $post['m']['b'] ) && trim($post['m']['b']) ) {
-    			$meta['email_body'] = esc_attr( implode( "\n", array_map( 'sanitize_text_field', explode( "\n", $post['m']['b'] ) ) ) );
-    		} else {
-    			unset( $meta['email_body'] );
-    		}
-    		if ( !empty( $post['l'] ) && trim($post['l']) ) {
-    			$meta['label'] = esc_attr( sanitize_text_field( $post['l'] ) );
-    		} else {
-    			unset( $meta['label'] );
-    		}
-    		// little feedback
-    		printf(
-				'<div class="%s notice is-dismissible"><p>%s</p></div>',
-				'updated',
-				'Settings saved successfully!'
-			);
-    		if ( $meta ) {
-	    		return update_option( "bmen_settings", apply_filters( "bmen_settings_meta", $meta ) );
-	    	} else {
-	    		return delete_option( "bmen_settings" );
-	    	}
+    	if ( !isset($_POST['submit']) )
+            return;
+
+		if ( !isset( $_POST['bmen_nonce'] ) || !wp_verify_nonce( $_POST['bmen_nonce'], 'bmen_nonce' ) ) {
+            $this->feedback = sprintf(
+                '<div class="error notice is-dismissible"><p>%s</p></div>',
+                __('ERROR: authentication failed.', $this->text_domain)
+            );
+			return;
+		}
+
+        global $bmen_settings;
+        $opt = array();
+
+		if ( !empty( $_POST['subject'] ) && trim($_POST['subject']) ) {
+			$opt['email_subject'] = esc_attr( $_POST['subject'] );
+		}
+
+		if ( !empty( $_POST['body'] ) && trim($_POST['body']) ) {
+			$opt['email_body'] = esc_attr($_POST['body']);
+		}
+
+		if ( !empty( $_POST['label'] ) && trim($_POST['label']) ) {
+			$opt['label'] = esc_attr($_POST['label']);
+		}
+
+		if ( $opt ) {
+    		update_option('bmen_settings', apply_filters('bmen_settings_meta', $opt));
+            // little feedback
+            $this->feedback = sprintf(
+                '<div class="updated notice is-dismissible"><p>%s</p></div>',
+                __('Settings updated successfully!', $this->text_domain)
+            );
+    	} else {
+    		delete_option('bmen_settings');
+            // little feedback
+            $this->feedback = sprintf(
+                '<div class="updated notice is-dismissible"><p>%s</p></div>',
+                __('Settings flushed successfully!', $this->text_domain)
+            );
     	}
+
+        // update global obj
+        $bmen_settings = wp_parse_args($opt, $this->defaults);
     }
 
     /** admin settings page callback **/
-    public static function adminScreen()
+    public function adminScreen()
     {
     	// get settings
-    	$settings = self::settings(1);
-
+    	$opt = $this->settings();
     	?>			
 
 	    	<div class="wrap">
 	
-                <h2>bbPress Mentions Email Notifications &rsaquo; Settings</h2>
+                <h2><?php _e('bbPress Mentions Email Notifications &rsaquo; Settings', $this->text_domain); ?></h2>
                 
-                <?php self::topMenu(); ?>
+                <?php $this->topMenu(); ?>
 
 				<form method="post">
 		    		
 			    	<div class="section">
 
-			    		<h3>Email Settings</h3>
+			    		<h3><?php _e('Email Settings', $this->text_domain); ?></h3>
 
-			    		<h4>Subject</h4>
+			    		<h4><?php _e('Subject', $this->text_domain); ?></h4>
 
 			    		<p>
-			    			<label><input type="text" name="b[m][s]" size="60" value="<?php echo wp_unslash($settings['email_subject']); ?>" /><br/>
-			    			<em>Enter a subject-line for the email</em></label>
+			    			<label><input type="text" name="subject" size="60" value="<?php echo wp_unslash($opt['email_subject']); ?>" /><br/>
+			    			<em><?php _e('Enter a subject-line for the email', $this->text_domain); ?></em></label>
 			    		</p>
 
-			    		<h4>Body</h4>
+			    		<h4><?php _e('Body', $this->text_domain); ?></h4>
 
 			    		<p>
 			    			<label>
-			    				<textarea name="b[m][b]" rows="5" cols="62" id="bmen-mb"><?php echo wp_unslash($settings['email_body']); ?></textarea><br/>
-				    			<em>Enter a body for the email</em>
+			    				<textarea name="body" rows="5" cols="62" id="bmen-mb"><?php echo wp_unslash($opt['email_body']); ?></textarea><br/>
+				    			<em><?php _e('Enter a body for the email', $this->text_domain); ?></em>
 			    			</label>
 			    		</p>
 
-			    		<p><em>You can format the subject and email body with the following patterns:</em></p>
+			    		<p><em><?php _e('You can format the subject and email body with the following patterns:', $this->text_domain); ?></em></p>
 
-			    		<?php foreach ( self::instance()->patterns as $p => $d ) : ?>
+			    		<?php foreach ($this->patterns as $p => $d) : ?>
 			    			<code><?php echo $p; ?></code>: <?php echo $d; ?><br/>
 			    		<?php endforeach; ?>
 
@@ -234,11 +231,11 @@ class Bmen
 
 			    	<div class="section">
 
-			    		<h3>Profile-edit label</h3>
+			    		<h3><?php _e('Profile-edit label', $this->text_domain); ?></h3>
 
 			    		<p>
-			    			<label><input type="text" name="b[l]" size="60" value="<?php echo wp_unslash($settings['label']); ?>" /><br/>
-			    			<em>Enter a text for the label</em></label>
+			    			<label><input type="text" name="label" size="60" value="<?php echo wp_unslash($opt['label']); ?>" /><br/>
+			    			<em><?php _e('Enter a text for the label', $this->text_domain); ?></em></label>
 			    		</p>
 
 			    	</div>
@@ -255,13 +252,13 @@ class Bmen
     }
 
     /** about screen **/
-    public static function aboutScreen()
+    public function aboutScreen()
     {
         ?>
         <div class="wrap">
-            <h2>bbPress Mentions Email Notifications &rsaquo; About</h2>
-            <?php self::topMenu(); ?>
-            <p style="font-weight:600">Thank you for using <a href="https://wordpress.org/plugins/bbp-mentions-email-notifications/">bbPress Mentions Email Notifications</a>, ver. <?php echo self::instance()->version; ?>!</p>
+            <h2><?php _e('bbPress Mentions Email Notifications &rsaquo; About', $this->text_domain); ?></h2>
+            <?php $this->topMenu(); ?>
+            <p style="font-weight:600">Thank you for using <a href="https://wordpress.org/plugins/bbp-mentions-email-notifications/">bbPress Mentions Email Notifications</a>, ver. <?php echo $this->version; ?>!</p>
             <li><a href="https://wordpress.org/support/plugin/bbp-mentions-email-notifications">Support</li>
             <li><a href="https://wordpress.org/support/plugin/bbp-mentions-email-notifications/reviews/">Rate this plugin</a></li>
             <p style="font-weight:600">More bbPress plugins by Samuel Elh:</p>
@@ -277,19 +274,20 @@ class Bmen
     }
 
     /** top menu **/
-    public static function topMenu()
+    public function topMenu()
     {
-        if ( empty( $_GET['page'] ) ) return;
-        $p = esc_attr($_GET['page']);
+        if ( $this->feedback && trim($this->feedback) ) {
+            print $this->feedback;
+        }
+        $page = isset($_GET['page']) ? $_GET['page'] : null;
         ?>
             <h2 class="nav-tab-wrapper">
-
-                <a class="nav-tab<?php echo"bmen"==$p?" nav-tab-active":"";?>" href="options-general.php?page=bmen">
-                    <span>Settings</span>
+                <a class="nav-tab<?php echo"bmen"==$page?" nav-tab-active":"";?>" href="options-general.php?page=bmen">
+                    <span><?php _e('Settings', $this->text_domain); ?></span>
                 </a>
 
-                <a class="nav-tab<?php echo"bmen-about"==$p?" nav-tab-active":"";?>" href="options-general.php?page=bmen-about">
-                    <span>About</span>
+                <a class="nav-tab<?php echo"bmen-about"==$page?" nav-tab-active":"";?>" href="options-general.php?page=bmen-about">
+                    <span><?php _e('About', $this->text_domain); ?></span>
                 </a>
             </h2>
             <p></p>
@@ -297,7 +295,7 @@ class Bmen
     }
 
     /** print CSS for settings page **/
-    public static function printCSS()
+    public function printCSS()
     {
     	print('<style type="text/css">');
     	print('.wrap .section{display: block; background: #fff; padding: 1em; padding-top: 0.5em; border: 1px solid #dcdbdb;}');
@@ -306,56 +304,57 @@ class Bmen
     }
 
     /** push plugins.php urls **/
-    public static function pushMeta( $links )
+    public function pushMeta( $links )
     {
         return array(
-            '<a href="' . esc_url( 'options-general.php?page=bmen' ) . '">' . __( 'Settings' ) . '</a>',
-            '<a href="' . esc_url( 'options-general.php?page=bmen-about' ) . '">' . __( 'About' ) . '</a>'
+            '<a href="' . esc_url('options-general.php?page=bmen') . '">' . __('Settings', $this->text_domain) . '</a>',
+            '<a href="' . esc_url('options-general.php?page=bmen-about') . '">' . __('About', $this->text_domain) . '</a>'
         ) + $links;
     }
 
     /** user preferences **/
-    public static function canNotify( $user_id )
+    public function canNotify( $user_id )
     {
-    	$allow = !((bool) get_user_meta( $user_id, 'bmen_mute', 1 ));
+    	$allow = !get_user_meta($user_id, 'bmen_mute', 1);
     	return apply_filters( "bmen_can_notify", $allow, $user_id );
     }
 
     /** add field to bbp edit **/
-    public static function peditField()
+    public function peditField()
     {
+        $opt = $this->settings();
 		?>
 			<div>
-				<label for=""><?php echo apply_filters( 'bmen_pedit_field_header', "Email notifications" ); ?></label>	
+				<label for=""><?php echo apply_filters('bmen_pedit_field_header', __('Email notifications', $this->text_domain)); ?></label>	
 				<label>
-					<input type="checkbox" name="bmen_notify" style="width: auto;" <?php checked( self::canNotify( bbp_get_displayed_user_field('ID') ) ); ?> /> <?php echo self::settings()['label']; ?>
+					<input type="checkbox" name="bmen_notify" style="width: auto;" <?php checked( $this->canNotify( bbp_get_displayed_user_field('ID') ) ); ?> /> <?php echo $opt['label']; ?>
 				</label>
 			</div>
 		<?php
 	}
 
 	/** hook into profile update **/
-	public static function updateProfile( $user_id )
+	public function updateProfile( $user_id )
 	{
 		// exclude profile.php/user-edit update
 		if ( is_admin() ) return;
 		// update preference
-		if ( isset( $_POST['bmen_notify'] ) ) {
-			return delete_user_meta( $user_id, "bmen_mute" );
+		if ( isset($_POST['bmen_notify']) ) {
+			return delete_user_meta($user_id, 'bmen_mute');
 		} else {
-			return update_user_meta( $user_id, "bmen_mute", time() );
+			return update_user_meta($user_id, 'bmen_mute', time());
 		}
 	}
 
 	/** hook into posts to notify **/
-	public static function mentionsCheck( $post_id )
+	public function mentionsCheck( $post_id )
 	{
 		if ( !function_exists('bbp_find_mentions') ) return;
 		$post = get_post( $post_id );
 		$mentions = bbp_find_mentions( $post->post_content );
 		if ( !$mentions || !$post->ID ) return;
 		// get previous notified users (to avoid notifying more than once)
-		$notified = get_post_meta( $post->ID, "bmen_notified", 1 );
+		$notified = get_post_meta($post->ID, 'bmen_notified', 1);
 		if ( !$notified || !is_array( $notified ) ) {
 			$notified = array();
 		}
@@ -365,7 +364,7 @@ class Bmen
 			// exclude false mentions
 			if ( $user->ID ) {
 				// preference check
-				if ( !self::canNotify( $user->ID ) ) {
+				if ( !$this->canNotify( $user->ID ) ) {
 					continue;
 				}
 				// notified before
@@ -373,19 +372,19 @@ class Bmen
 					continue;
 				}				
 				// notify and push into meta
-				if ( self::notify( $user, $post ) ) {
+				if ( $this->notify( $user, $post ) ) {
 					$notified[] = $user->ID;
                     // trigger hook
-                    do_action( "bmen_post_notify_user", $user, $post );
+                    do_action('bmen_post_notify_user', $user, $post );
 				}
 			}
 		}
 		// push notified users to meta
-		return update_post_meta( $post->ID, "bmen_notified", $notified );
+		return update_post_meta($post->ID, 'bmen_notified', $notified);
 	}
 
 	/** process notifications **/
-	public static function notify( $user, $post ) {
+	public function notify( $user, $post ) {
 		if ( !isset( $user->ID ) && is_numeric( $user ) ) {
 			$user = get_userdata( $user );
 		}
@@ -402,16 +401,16 @@ class Bmen
 		$author = get_userdata( $post->post_author );
 
 		// get settings
-		$settings = self::settings();
+		$settings = $this->settings();
 
 		// pattern replace data
-		$patternData = self::instance()->patterns;
+		$patternData = $this->patterns;
 		$patternData['[user-name]'] = $user->display_name;
 		$patternData['[user-link]'] = bbp_get_user_profile_url( $user->ID );
 		$patternData['[user-edit-profile-link]'] = bbp_get_user_profile_url( $user->ID ) . 'edit/';
 		$patternData['[author-name]'] = $author->display_name;
 		$patternData['[post-title]'] = apply_filters( "the_title", $post->post_title, $post->ID );
-		$patternData['[post-link]'] = 'topic' !== $post->post_type ? bbp_get_reply_url( $post_id ) : get_the_permalink($post_id);
+        $patternData['[post-link]'] = bbp_get_reply_url( bbp_get_reply_id( $post->ID ) );
 		$patternData['[post-content]'] = trim( $post->post_content );
 		$patternData['[post-date]'] = $post->post_date;
 		$patternData['[post-type]'] = $post->post_type;
@@ -428,29 +427,33 @@ class Bmen
 		);
 		// body
 		$notification['body'] = str_replace(
-			array_keys( $patternData ),
+			array_keys($patternData),
 			$patternData,
 			$settings['email_body']
 		);
 		// email
 		$notification['email'] = $user->user_email;
+        // headers
+        $notification['headers'] = '';
+        // html formatted emails
+        if ( strip_tags($notification['body']) !== $notification['body'] ) {
+            $notification['headers'] = array('Content-Type: text/html; charset=' . get_option('blog_charset'));
+        }
 		// pluggable
-		$notification = apply_filters( "bmen_notification", $notification, $user, $post, $patternData );
+		$notification = apply_filters('bmen_notification', $notification, $user, $post, $patternData );
 		// trigger hook
-		do_action( "bmen_pre_mail", $notification, $user, $post, $patternData );
+		do_action('bmen_pre_mail', $notification, $user, $post, $patternData );
 		// send the mail
 		return (bool) wp_mail(
 			$notification['email'],
 			$notification['subject'],
-			$notification['body']
+			$notification['body'],
+            $notification['headers']
 		);
 	}
 }
 
-// init plugin
-Bmen::init();
+$bbpMentionsEmailNotification = new bbpMentionsEmailNotification;
 
-if ( is_admin() ) {
-	// init admin
-	Bmen::adminInit();
-}
+// init plugin
+add_action('plugins_loaded', array($bbpMentionsEmailNotification, 'init'));

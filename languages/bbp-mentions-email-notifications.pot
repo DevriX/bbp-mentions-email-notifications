@@ -1,0 +1,176 @@
+# Copyright (C) 2017 bbPress Mentions Email Notifications
+# This file is distributed under the same license as the bbPress Mentions Email Notifications package.
+msgid ""
+msgstr ""
+"Project-Id-Version: bbPress Mentions Email Notifications 1.0.2\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/bbp-mentions-"
+"email-notifications\n"
+"POT-Creation-Date: 2017-02-27 21:44:04+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2017-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+
+#: bmen.php:38
+msgid "mentioned user name"
+msgstr ""
+
+#: bmen.php:39
+msgid "mentioned user profile link"
+msgstr ""
+
+#: bmen.php:40
+msgid "mentioned user profile edit link"
+msgstr ""
+
+#: bmen.php:41
+msgid "name of the user who mentions the target user (i.e topic/reply editor)"
+msgstr ""
+
+#: bmen.php:42
+msgid "topic/reply title"
+msgstr ""
+
+#: bmen.php:43
+msgid "topic or reply link"
+msgstr ""
+
+#: bmen.php:44
+msgid "topic or reply content text"
+msgstr ""
+
+#: bmen.php:45
+msgid "topic/reply publish date"
+msgstr ""
+
+#: bmen.php:46
+msgid "type: topic or reply"
+msgstr ""
+
+#: bmen.php:47
+msgid "post ID"
+msgstr ""
+
+#: bmen.php:48
+msgid "site name"
+msgstr ""
+
+#: bmen.php:49
+msgid "login URL"
+msgstr ""
+
+#: bmen.php:53
+msgid "[user-name] has mentioned you on their [post-type] \"[post-title]\""
+msgstr ""
+
+#: bmen.php:54
+msgid ""
+"Dear [user-name],\n"
+"\n"
+"[author-name] has just mentioned you on their [post-type] \"[post-title]\":\n"
+"\n"
+"\"[post-content]\"\n"
+"\n"
+"Read this post on the forums: [post-link]\n"
+"To update your preferences, please visit your profile edit page."
+msgstr ""
+
+#: bmen.php:55
+msgid "Notify me whenever my name is mentioned on the forums"
+msgstr ""
+
+#. #-#-#-#-#  bbp-mentions-email-notifications.pot (bbPress Mentions Email Notifications 1.0.2)  #-#-#-#-#
+#. Plugin Name of the plugin/theme
+#: bmen.php:120
+msgid "bbPress Mentions Email Notifications"
+msgstr ""
+
+#: bmen.php:121
+msgid "bbP mentions"
+msgstr ""
+
+#: bmen.php:129
+msgid "About &lsaquo; bbPress Mentions Email Notifications"
+msgstr ""
+
+#: bmen.php:145
+msgid "ERROR: authentication failed."
+msgstr ""
+
+#: bmen.php:170
+msgid "Settings updated successfully!"
+msgstr ""
+
+#: bmen.php:177
+msgid "Settings flushed successfully!"
+msgstr ""
+
+#: bmen.php:194
+msgid "bbPress Mentions Email Notifications &rsaquo; Settings"
+msgstr ""
+
+#: bmen.php:202
+msgid "Email Settings"
+msgstr ""
+
+#: bmen.php:204
+msgid "Subject"
+msgstr ""
+
+#: bmen.php:208
+msgid "Enter a subject-line for the email"
+msgstr ""
+
+#: bmen.php:211
+msgid "Body"
+msgstr ""
+
+#: bmen.php:216
+msgid "Enter a body for the email"
+msgstr ""
+
+#: bmen.php:220
+msgid "You can format the subject and email body with the following patterns:"
+msgstr ""
+
+#: bmen.php:232
+msgid "Profile-edit label"
+msgstr ""
+
+#: bmen.php:236
+msgid "Enter a text for the label"
+msgstr ""
+
+#: bmen.php:257
+msgid "bbPress Mentions Email Notifications &rsaquo; About"
+msgstr ""
+
+#: bmen.php:284 bmen.php:308
+msgid "Settings"
+msgstr ""
+
+#: bmen.php:288 bmen.php:309
+msgid "About"
+msgstr ""
+
+#: bmen.php:325
+msgid "Email notifications"
+msgstr ""
+
+#. Plugin URI of the plugin/theme
+msgid "https://samelh.com/"
+msgstr ""
+
+#. Description of the plugin/theme
+msgid "Mentions Email Notifications for bbPress"
+msgstr ""
+
+#. Author of the plugin/theme
+msgid "Samuel Elh"
+msgstr ""
+
+#. Author URI of the plugin/theme
+msgid "https://samelh.com"
+msgstr ""

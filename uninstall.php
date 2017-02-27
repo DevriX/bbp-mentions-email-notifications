@@ -1,7 +1,14 @@
 <?php
-// if uninstall.php is not called by WordPress, die
+/* if uninstall.php is not called by WordPress, die */
+
+defined('ABSPATH') || die('Direct access not allowed.' . PHP_EOL);
+
 if (!defined('WP_UNINSTALL_PLUGIN')) {
-    die;
+    die('Direct access not allowed.' . PHP_EOL);
+}
+
+if (!defined('WP_UNINSTALL_PLUGIN')) {
+    die('Direct access not allowed.' . PHP_EOL);
 }
 
 $options = array(
@@ -15,7 +22,7 @@ $options = array(
     'bmen_settings'
 );
 
-$umeta = array(
+$usermeta = array(
     'bbpen_dont_email_me',
     'bbpen_notified_in',
     'bmen_mute'
@@ -30,16 +37,13 @@ foreach ( $options as $option ) {
 	delete_option( $option );
 }
 
+global $wpdb;
+
 // flush user meta
-foreach ( get_users() as $user ) {
-    foreach ( $umeta as $key ) {
-        delete_user_meta( $user->ID, $key );
-    }
-}
+$wpdb->query(sprintf(
+    "DELETE FROM {$wpdb->usermeta} WHERE `meta_key` IN ('%s')",
+    implode("','", $usermeta)
+));
 
 // flush post meta
-foreach ( get_posts( array( 'post_type' => array( 'topic', 'reply' ), 'numberposts' => -1 ) ) as $post ) {
-    foreach ( $postmeta as $key ) {
-        delete_post_meta( $post->ID, $key );
-    }
-}
+$wpdb->query("DELETE FROM {$wpdb->postmeta} WHERE `meta_key` = 'bmen_notified'");
